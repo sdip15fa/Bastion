@@ -1,6 +1,6 @@
 services:
   bastion:
-    image: ${DOCKER_IMAGE:-bastion}
+    image: ${DOCKER_IMAGE:-ghcr.io/thebastionbot/bastion:main}
     container_name: bastion
     build:
       context: ../
