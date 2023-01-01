@@ -21,7 +21,7 @@ RUN apk add bash screen git ffmpeg
 
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
-COPY ./package.json ./yarn.lock* ./tsconfig.json ./bastion.sh ./settings.example.yaml ./
+COPY ./package.json ./bastion.sh ./
 
 COPY ./data ./data
 COPY ./locales ./locales
