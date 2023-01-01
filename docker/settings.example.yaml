@@ -19,6 +19,9 @@ owners:
 
 # MongoDB connection URI
 # `TESSERACT_MONGO_URI` environment variable overwrites this value.
+# if using docker compose change this to
+# mongodb://${MONGO_USER}:${MONGO_PASSWORD}@bastion-mongo:${MONGO_PORT}
+# replace the variables with those configured in .env
 mongoURI: "mongodb://127.0.0.1:27017/bastion"
 
 # Presences

@@ -4,13 +4,10 @@
 
 ```bash
 cp settings.example.yaml settings.yaml
-cp example.env .env
+cp .env.example .env
 ```
 
-Configure `.env` first, it is necessary.
-
-For each config in `settings.yaml`, if they are available as environmental variables, there is no need to configure.
-Keeping the default values is completely fine for `settings.yaml` as the compulsory values are already supplied by `.env`.
+Please configure everything in both `settings.yaml` and `.env`.
 
 ## Start
 
