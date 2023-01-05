@@ -3,13 +3,14 @@
  * @copyright 2022
  */
 import * as numbers from "./numbers";
-import { Message, ChatInputCommandInteraction, GuildTextBasedChannel } from "discord.js";
+import {Message, ChatInputCommandInteraction, GuildTextBasedChannel, APIEmbed} from "discord.js";
 import { Guild as GuildDocument } from "../models/Guild";
 import { Member } from "../models/Member";
 import { Document } from "mongoose";
 import RoleModel from "../models/Role";
 import { updateBalance } from "./members";
-import { Client, Logger } from "@bastion/tesseract";
+import { Logger } from "@bastion/tesseract";
+import {COLORS} from "./constants";
 
 const DEFAUL_LEVELUP_MULTIPLIER = 0.42;
 const DEFAUL_CURRENCY_REWARD_MULTIPLIER = 42;
@@ -71,18 +72,36 @@ async function checkLevelUp(message: Message<true> | ChatInputCommandInteraction
 
         // achievement message
         if (guildDocument.gamificationMessages) {
-            const gamificationMessage = (message.client as Client).locales.getText(message.guild.preferredLocale, "leveledUp", { level: `Level ${ computedLevel }` });
+            const embed: APIEmbed = {
+                color: COLORS.GREEN,
+                author: {
+                    name: user.tag,
+                    icon_url: user.displayAvatarURL(),
+                },
+                title: "Level Up",
+                description: `You are now level **${computedLevel}**!`,
+            };
             if (guildDocument.gamificationChannel && message.guild.channels.cache.has(guildDocument.gamificationChannel)) {
                 (message.guild.channels.cache.get(guildDocument.gamificationChannel) as GuildTextBasedChannel)
-                    .send(`${ user }, ${ gamificationMessage }`)
+                    .send({
+                        embeds: [{
+                            ...embed,
+                            description: `${user} ${embed.description}`,
+                        },],
+                    })
                     .catch(Logger.ignore);
             } else if (message instanceof ChatInputCommandInteraction) {
                 message.channel
-                    .send(`${ user }, ${ gamificationMessage }`)
+                    .send({
+                        embeds: [{
+                            ...embed,
+                            description: `${user} ${embed.description}`,
+                        },],
+                    })
                     .catch(Logger.ignore);
             } else {
                 message
-                    .reply(gamificationMessage)
+                    .reply({ embeds: [ embed, ], })
                     .catch(Logger.ignore);
             }
         }
