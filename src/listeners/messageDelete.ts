@@ -51,7 +51,7 @@ class MessageDeleteListener extends Listener<"messageDelete"> {
                     name: "Content",
                     value: message.content,
                 }
-            ].filter(x => x),
+            ].filter(f => f),
             timestamp: new Date().toISOString(),
         });
     }
