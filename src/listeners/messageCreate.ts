@@ -2,19 +2,30 @@
  * @author TRACTION (iamtraction)
  * @copyright 2022
  */
-import { ChannelType, Message, Snowflake, Team, ThreadAutoArchiveDuration } from "discord.js";
-import { Client, Listener, Logger } from "@bastion/tesseract";
+import {
+    APIEmbed,
+    ChannelType,
+    GuildTextBasedChannel,
+    Message,
+    Snowflake,
+    Team,
+    ThreadAutoArchiveDuration
+} from "discord.js";
+import {Client, Listener, Logger} from "@bastion/tesseract";
 
-import GuildModel, { Guild as GuildDocument } from "../models/Guild";
+import GuildModel, {Guild as GuildDocument} from "../models/Guild";
 import MemberModel from "../models/Member";
+import RoleModel from "../models/Role";
 import TriggerModel from "../models/Trigger";
-import { COLORS } from "../utils/constants";
-import { generate as generateEmbed } from "../utils/embeds";
+import {COLORS} from "../utils/constants";
+import {generate as generateEmbed} from "../utils/embeds";
 import * as gamification from "../utils/gamification";
+import * as members from "../utils/members";
+import * as numbers from "../utils/numbers";
 import * as regex from "../utils/regex";
 import * as variables from "../utils/variables";
 import * as yaml from "../utils/yaml";
-import { bastion } from "../types";
+import {bastion} from "../types";
 
 class MessageCreateListener extends Listener<"messageCreate"> {
     public activeUsers: Map<Snowflake, Snowflake[]>;
@@ -25,6 +36,34 @@ class MessageCreateListener extends Listener<"messageCreate"> {
         this.activeUsers = new Map<Snowflake, Snowflake[]>();
     }
 
+    handleLevelRoles = async (message: Message, level: number): Promise<void> => {
+        const roles = await RoleModel.find({
+            guild: message.guild.id,
+            level: {$exists: true, $ne: null},
+        });
+
+        // check whether there are any level up roles
+        if (!roles?.length) return;
+
+        // get the nearest level for which roles are available
+        const nearestLevel = numbers.smallestNeighbor(level, roles.map(r => r.level));
+
+        // identify valid roles
+        const levelRoles = roles.filter(r => r.level === nearestLevel && message.guild.roles.cache.has(r._id));
+        const extraRoles = roles.filter(r => r.level !== nearestLevel && message.guild.roles.cache.has(r._id));
+
+        // update member roles
+        if (levelRoles.length) {
+            const memberRoles = message.member.roles.cache
+                .filter(r => !extraRoles.some(doc => doc.id === r.id))   // remove roles from any other level
+                .map(r => r.id)
+                .concat(levelRoles.map(doc => doc.id)); // add roles in the current level
+
+            // update member roles
+            message.member.roles.set(memberRoles).catch(Logger.error);
+        }
+    };
+
     handleGamification = async (message: Message<true>, guildDocument: GuildDocument): Promise<void> => {
         // get recent users
         const activeUsers = this.activeUsers.get(message.guild.id) || [];
@@ -33,7 +72,10 @@ class MessageCreateListener extends Listener<"messageCreate"> {
         if (activeUsers.includes(message.author.id)) return;
 
         // find member document or create a new one
-        const memberDocument = await MemberModel.findOneAndUpdate({ user: message.author.id, guild: message.guildId }, {}, { new: true, upsert: true });
+        const memberDocument = await MemberModel.findOneAndUpdate({
+            user: message.author.id,
+            guild: message.guildId
+        }, {}, {new: true, upsert: true});
 
         // check whether gamification is enabled
         if (!guildDocument.gamification) return;
@@ -44,8 +86,48 @@ class MessageCreateListener extends Listener<"messageCreate"> {
         // increment experience
         memberDocument.experience = message.member.premiumSinceTimestamp ? memberDocument.experience + 2 : memberDocument.experience + 1;
 
+        // compute current level from new experience
+        const computedLevel: number = gamification.computeLevel(memberDocument.experience, guildDocument.gamificationMultiplier);
+
+        // level up
+        if (computedLevel > memberDocument.level) {
+            // credit reward amount into member's account
+            await members.updateBalance(memberDocument, computedLevel * gamification.DEFAUL_CURRENCY_REWARD_MULTIPLIER);
+
+            // achievement message
+            if (guildDocument.gamificationMessages) {
+                const embed: APIEmbed = {
+                    color: COLORS.GREEN,
+                    author: {
+                        name: message.author.tag,
+                        icon_url: message.author.displayAvatarURL(),
+                    },
+                    title: "Level Up",
+                    description: `You are now level **${computedLevel}**!`,
+                };
+                if (guildDocument.gamificationChannel && message.guild.channels.cache.has(guildDocument.gamificationChannel)) {
+                    (message.guild.channels.cache.get(guildDocument.gamificationChannel) as GuildTextBasedChannel)
+                        .send({
+                            embeds: [{
+                                ...embed,
+                                description: `${message.author} ${embed.description}`,
+                            },],
+                        })
+                        .catch(Logger.ignore);
+                } else {
+                    message
+                        .reply({embeds: [embed,],})
+                        .catch(Logger.ignore);
+                }
+            }
+
+            // reward level roles, if available
+            this.handleLevelRoles(message, computedLevel)
+                .catch(Logger.error);
+        }
+
         // update level
-        memberDocument.level = await gamification.checkLevelUp(message, memberDocument, guildDocument);
+        memberDocument.level = computedLevel;
 
         // save document
         await memberDocument.save();
@@ -63,7 +145,7 @@ class MessageCreateListener extends Listener<"messageCreate"> {
     };
 
     handleTriggers = async (message: Message<true>): Promise<unknown> => {
-        const triggers = await TriggerModel.find({ guild: message.guild.id });
+        const triggers = await TriggerModel.find({guild: message.guild.id});
 
         // responses
         const responseMessages: string[] = [];
@@ -90,7 +172,7 @@ class MessageCreateListener extends Listener<"messageCreate"> {
                     .catch(Logger.error);
             }
             return message.reply({
-                embeds: [ responseMessage ],
+                embeds: [responseMessage],
             }).catch(Logger.error);
         }
 
@@ -120,7 +202,7 @@ class MessageCreateListener extends Listener<"messageCreate"> {
         if (!guildDocument.gamification) return;
 
         const mentiondUsers = message.mentions.users?.filter(u => u.id !== message.author.id);
-        if (mentiondUsers?.size && [ "thank you", "thankyou", "thanks" ].some(w => message.content.toLowerCase().includes(w))) {
+        if (mentiondUsers?.size && ["thank you", "thankyou", "thanks"].some(w => message.content.toLowerCase().includes(w))) {
             const users = Array.from(mentiondUsers.keys());
 
             await MemberModel.updateMany({
@@ -153,14 +235,14 @@ class MessageCreateListener extends Listener<"messageCreate"> {
             type: ChannelType.PrivateThread,
             name: message.member.displayName + " — " + new Date().toDateString(),
             autoArchiveDuration: ThreadAutoArchiveDuration.OneDay,
-            reason: `Auto Thread for ${ message.author.tag }`,
+            reason: `Auto Thread for ${message.author.tag}`,
             invitable: true,
             startMessage: message,
         });
 
         thread.send({
-            content: `Hello ${ message.author }!
-\nThis thread has been automatically created from your message in the ${ message.channel } channel.
+            content: `Hello ${message.author}!
+\nThis thread has been automatically created from your message in the ${message.channel} channel.
 \n**Useful Commands**
 • \`/thread name\` — Change the name of the thread.
 • \`/thread close\` — Close and lock the thread once you're done.
@@ -212,7 +294,7 @@ class MessageCreateListener extends Listener<"messageCreate"> {
             if (!(match instanceof Array)) return;
 
             // get the webhook id & token from the matched array
-            const [ , webhookId, webhookToken ] = match;
+            const [, webhookId, webhookToken] = match;
 
             // fetch the webhook
             const webhook = await message.client.fetchWebhook(webhookId, webhookToken);
