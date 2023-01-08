@@ -60,7 +60,7 @@ class MessageCreateListener extends Listener<"messageCreate"> {
                 .concat(levelRoles.map(doc => doc.id)); // add roles in the current level
 
             // update member roles
-            message.member.roles.set(memberRoles).catch(Logger.error);
+            message.member.roles.set([ ...new Set(memberRoles) ]).catch(Logger.error);
         }
     };
 
@@ -84,7 +84,7 @@ class MessageCreateListener extends Listener<"messageCreate"> {
         if (memberDocument.level >= gamification.MAX_LEVEL || memberDocument.experience >= gamification.MAX_EXPERIENCE(guildDocument.gamificationMultiplier)) return;
 
         // increment experience
-        memberDocument.experience = message.member.premiumSinceTimestamp ? memberDocument.experience + 2 : memberDocument.experience + 1;
+        members.updateExperience(memberDocument, message.member.premiumSinceTimestamp ? 2 : 1);
 
         // compute current level from new experience
         const computedLevel: number = gamification.computeLevel(memberDocument.experience, guildDocument.gamificationMultiplier);
@@ -92,7 +92,7 @@ class MessageCreateListener extends Listener<"messageCreate"> {
         // level up
         if (computedLevel > memberDocument.level) {
             // credit reward amount into member's account
-            await members.updateBalance(memberDocument, computedLevel * gamification.DEFAUL_CURRENCY_REWARD_MULTIPLIER);
+            members.updateBalance(memberDocument, computedLevel * gamification.DEFAUL_CURRENCY_REWARD_MULTIPLIER);
 
             // achievement message
             if (guildDocument.gamificationMessages) {
@@ -105,6 +105,7 @@ class MessageCreateListener extends Listener<"messageCreate"> {
                     title: "Level Up",
                     description: `You are now level **${computedLevel}**!`,
                 };
+
                 if (guildDocument.gamificationChannel && message.guild.channels.cache.has(guildDocument.gamificationChannel)) {
                     (message.guild.channels.cache.get(guildDocument.gamificationChannel) as GuildTextBasedChannel)
                         .send({
