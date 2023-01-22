@@ -2,7 +2,7 @@
  * @author TRACTION (iamtraction)
  * @copyright 2022
  */
-import { ApplicationCommandOptionType, ChatInputCommandInteraction, HexColorString } from "discord.js";
+import { ApplicationCommandOptionType, ChatInputCommandInteraction, HexColorString, PermissionFlagsBits } from "discord.js";
 import { Command, Logger } from "@bastion/tesseract";
 
 import Color from "color";
@@ -44,6 +44,11 @@ class RoleColorCommand extends Command {
         color = color || `#${randomBytes(3).toString("hex")}`;
         
         let role = interaction.options.getRole("role");
+
+        if (role && !interaction.member.permissions.has(PermissionFlagsBits.ManageRoles)) {
+            return interaction.editReply("You do not have permission to manage roles.");
+        }
+
         if (!role) {
             const userRoleName = `User-${interaction.user.id}`;
             role = interaction.guild.roles.cache.find(r => r.name === userRoleName);
@@ -67,7 +72,7 @@ class RoleColorCommand extends Command {
                     return interaction.editReply("Failed to assign a new role to you.");
                 }
 
-                role.edit({ position: interaction.member.roles.cache.first().position, }).catch(Logger.ignore);
+                role.edit({ position: interaction.guild.members.me.roles.cache.first().position + 1 }).catch(Logger.ignore);
             }
         }
 
