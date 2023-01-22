@@ -52,6 +52,7 @@ class RoleColorCommand extends Command {
                     name: userRoleName,
                     color,
                     hoist: false,
+                    permissions: []
                 }).then(newRole => { role = newRole; })
                     .catch(Logger.ignore);
 
