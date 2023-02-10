@@ -1,32 +1,26 @@
-FROM node:18-alpine as build
+FROM node:lts-alpine as build
 
 WORKDIR /app
 
-RUN apk add git python3 libtool build-base
+COPY src src
+COPY package.json tsconfig.json ./
 
-COPY ./src ./src
-COPY ./package.json ./yarn.lock* ./tsconfig.json ./
+RUN npm install
+RUN npm run build
 
-RUN yarn install
 
-RUN yarn build
-
-RUN yarn install --production
-
-FROM node:18-alpine
+FROM node:lts-alpine
 
 WORKDIR /app
 
-RUN apk add bash screen git ffmpeg
+RUN apk add ffmpeg
 
+COPY package.json ./
+COPY settings.example.yaml ./settings.yaml
+COPY data data
+COPY locales locales
 COPY --from=build /app/dist ./dist
-COPY --from=build /app/node_modules ./node_modules
-COPY ./package.json ./bastion.sh ./
 
-COPY ./data ./data
-COPY ./locales ./locales
-COPY ./scripts ./scripts
+RUN npm install --omit=dev
 
-SHELL [ "/bin/bash", "-c" ]
-
-CMD ./bastion.sh --start && ./bastion.sh --show
+CMD npm start

@@ -13,19 +13,19 @@ import {
 } from "discord.js";
 import {Client, Listener, Logger} from "@bastion/tesseract";
 
-import GuildModel, {Guild as GuildDocument} from "../models/Guild";
-import MemberModel from "../models/Member";
-import RoleModel from "../models/Role";
-import TriggerModel from "../models/Trigger";
-import {COLORS} from "../utils/constants";
-import {generate as generateEmbed} from "../utils/embeds";
-import * as gamification from "../utils/gamification";
-import * as members from "../utils/members";
-import * as numbers from "../utils/numbers";
-import * as regex from "../utils/regex";
-import * as variables from "../utils/variables";
-import * as yaml from "../utils/yaml";
-import {bastion} from "../types";
+import GuildModel, { Guild as GuildDocument } from "../models/Guild.js";
+import MemberModel from "../models/Member.js";
+import RoleModel from "../models/Role.js";
+import TriggerModel from "../models/Trigger.js";
+import { COLORS } from "../utils/constants.js";
+import { generate as generateEmbed } from "../utils/embeds.js";
+import * as gamification from "../utils/gamification.js";
+import * as members from "../utils/members.js";
+import * as numbers from "../utils/numbers.js";
+import * as regex from "../utils/regex.js";
+import * as variables from "../utils/variables.js";
+import * as yaml from "../utils/yaml.js";
+import { bastion } from "../types.js";
 
 class MessageCreateListener extends Listener<"messageCreate"> {
     public activeUsers: Map<Snowflake, Snowflake[]>;
@@ -347,4 +347,4 @@ class MessageCreateListener extends Listener<"messageCreate"> {
     }
 }
 
-export = MessageCreateListener;
+export { MessageCreateListener as Listener };
