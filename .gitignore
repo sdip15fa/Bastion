@@ -11,8 +11,8 @@
 /typings
 
 # Lock file
-package-lock.json
-yarn.lock
+# package-lock.json
+# yarn.lock
 
 ### Logs ###
 screenlog.*
