@@ -7,7 +7,7 @@ COPY package.json yarn.lock tsconfig.json ./
 
 RUN apk add git
 
-RUN yarn install
+RUN yarn install --network-timeout 1000000
 RUN yarn build
 
 FROM node:lts-alpine
@@ -22,6 +22,6 @@ COPY data data
 COPY locales locales
 COPY --from=build /app/dist ./dist
 
-RUN yarn install --production
+RUN yarn install --production --network-timeout 1000000
 
 CMD yarn start
