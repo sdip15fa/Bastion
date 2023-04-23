@@ -6,9 +6,9 @@
 import { Client, Command } from "@bastion/tesseract";
 import { PermissionFlagsBits, ApplicationCommandOptionType, ChatInputCommandInteraction } from "discord.js";
 
-import MemberModel from "../models/Member";
-import GuildModel from "../models/Guild";
-import { COLORS } from "../utils/constants";
+import MemberModel from "../models/Member.js";
+import GuildModel from "../models/Guild.js";
+import { COLORS } from "../utils/constants.js";
 
 class GrantCommand extends Command {
     constructor() {
@@ -111,4 +111,4 @@ class GrantCommand extends Command {
     }
 }
 
-export = GrantCommand;
+export default GrantCommand;

@@ -86,4 +86,4 @@ class RoleColorCommand extends Command {
     }
 }
 
-export = RoleColorCommand;
+export default RoleColorCommand;

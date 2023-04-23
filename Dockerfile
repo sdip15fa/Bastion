@@ -3,24 +3,25 @@ FROM node:lts-alpine as build
 WORKDIR /app
 
 COPY src src
-COPY package.json tsconfig.json ./
+COPY package.json yarn.lock tsconfig.json ./
 
-RUN npm install
-RUN npm run build
+RUN apk add git
 
+RUN yarn install
+RUN yarn build
 
 FROM node:lts-alpine
 
 WORKDIR /app
 
-RUN apk add ffmpeg
+RUN apk add ffmpeg git
 
-COPY package.json ./
+COPY package.json yarn.lock ./
 COPY settings.example.yaml ./settings.yaml
 COPY data data
 COPY locales locales
 COPY --from=build /app/dist ./dist
 
-RUN npm install --omit=dev
+RUN yarn install --production
 
-CMD npm start
+CMD yarn start
