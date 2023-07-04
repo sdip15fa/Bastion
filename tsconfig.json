@@ -7,7 +7,8 @@
         "declarationMap": false,
         "esModuleInterop": true,
         "forceConsistentCasingInFileNames": true,
-        "module": "Node16",
+        "module": "ES2022",
+        "moduleResolution": "node",
         "newLine": "lf",
         "noUnusedLocals": true,
         "noUnusedParameters": true,
@@ -18,6 +19,6 @@
         "skipLibCheck": true,
         "sourceMap": true,
         "strict": false,
-        "target": "ES2022"
+        "target": "esnext"
     }
 }

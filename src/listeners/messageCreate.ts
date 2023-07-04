@@ -2,8 +2,16 @@
  * @author TRACTION (iamtraction)
  * @copyright 2022
  */
-import { ChannelType, GuildTextBasedChannel, Message, Snowflake, Team, ThreadAutoArchiveDuration } from "discord.js";
-import { Client, Listener, Logger } from "@bastion/tesseract";
+import {
+    APIEmbed,
+    ChannelType,
+    GuildTextBasedChannel,
+    Message,
+    Snowflake,
+    Team,
+    ThreadAutoArchiveDuration
+} from "discord.js";
+import {Client, Listener, Logger} from "@bastion/tesseract";
 
 import GuildModel, { Guild as GuildDocument } from "../models/Guild.js";
 import MemberModel from "../models/Member.js";
@@ -31,7 +39,7 @@ class MessageCreateListener extends Listener<"messageCreate"> {
     handleLevelRoles = async (message: Message, level: number): Promise<void> => {
         const roles = await RoleModel.find({
             guild: message.guild.id,
-            level: { $exists: true, $ne: null },
+            level: {$exists: true, $ne: null},
         });
 
         // check whether there are any level up roles
@@ -64,7 +72,10 @@ class MessageCreateListener extends Listener<"messageCreate"> {
         if (activeUsers.includes(message.author.id)) return;
 
         // find member document or create a new one
-        const memberDocument = await MemberModel.findOneAndUpdate({ user: message.author.id, guild: message.guildId }, {}, { new: true, upsert: true });
+        const memberDocument = await MemberModel.findOneAndUpdate({
+            user: message.author.id,
+            guild: message.guildId
+        }, {}, {new: true, upsert: true});
 
         // check whether gamification is enabled
         if (!guildDocument.gamification) return;
@@ -85,14 +96,28 @@ class MessageCreateListener extends Listener<"messageCreate"> {
 
             // achievement message
             if (guildDocument.gamificationMessages) {
-                const gamificationMessage = (message.client as Client).locales.getText(message.guild.preferredLocale, "leveledUp", { level: `Level ${ computedLevel }` });
+                const embed: APIEmbed = {
+                    color: COLORS.GREEN,
+                    author: {
+                        name: message.author.tag,
+                        icon_url: message.author.displayAvatarURL(),
+                    },
+                    title: "Level Up",
+                    description: `You are now level **${computedLevel}**!`,
+                };
 
                 if (guildDocument.gamificationChannel && message.guild.channels.cache.has(guildDocument.gamificationChannel)) {
                     (message.guild.channels.cache.get(guildDocument.gamificationChannel) as GuildTextBasedChannel)
-                        .send(`${ message.author }, ${ gamificationMessage }`)
+                        .send({
+                            embeds: [{
+                                ...embed,
+                                description: `${message.author} ${embed.description}`,
+                            },],
+                        })
                         .catch(Logger.ignore);
                 } else {
-                    message.reply(gamificationMessage)
+                    message
+                        .reply({embeds: [embed,],})
                         .catch(Logger.ignore);
                 }
             }
@@ -121,7 +146,7 @@ class MessageCreateListener extends Listener<"messageCreate"> {
     };
 
     handleTriggers = async (message: Message<true>): Promise<unknown> => {
-        const triggers = await TriggerModel.find({ guild: message.guild.id });
+        const triggers = await TriggerModel.find({guild: message.guild.id});
 
         // responses
         const responseMessages: string[] = [];
@@ -148,7 +173,7 @@ class MessageCreateListener extends Listener<"messageCreate"> {
                     .catch(Logger.error);
             }
             return message.reply({
-                embeds: [ responseMessage ],
+                embeds: [responseMessage],
             }).catch(Logger.error);
         }
 
@@ -178,7 +203,7 @@ class MessageCreateListener extends Listener<"messageCreate"> {
         if (!guildDocument.gamification) return;
 
         const mentiondUsers = message.mentions.users?.filter(u => u.id !== message.author.id);
-        if (mentiondUsers?.size && [ "thank you", "thankyou", "thanks" ].some(w => message.content.toLowerCase().includes(w))) {
+        if (mentiondUsers?.size && ["thank you", "thankyou", "thanks"].some(w => message.content.toLowerCase().includes(w))) {
             const users = Array.from(mentiondUsers.keys());
 
             await MemberModel.updateMany({
@@ -211,14 +236,14 @@ class MessageCreateListener extends Listener<"messageCreate"> {
             type: ChannelType.PrivateThread,
             name: message.member.displayName + " — " + new Date().toDateString(),
             autoArchiveDuration: ThreadAutoArchiveDuration.OneDay,
-            reason: `Auto Thread for ${ message.author.tag }`,
+            reason: `Auto Thread for ${message.author.tag}`,
             invitable: true,
             startMessage: message,
         });
 
         thread.send({
-            content: `Hello ${ message.author }!
-\nThis thread has been automatically created from your message in the ${ message.channel } channel.
+            content: `Hello ${message.author}!
+\nThis thread has been automatically created from your message in the ${message.channel} channel.
 \n**Useful Commands**
 • \`/thread name\` — Change the name of the thread.
 • \`/thread close\` — Close and lock the thread once you're done.
@@ -270,7 +295,7 @@ class MessageCreateListener extends Listener<"messageCreate"> {
             if (!(match instanceof Array)) return;
 
             // get the webhook id & token from the matched array
-            const [ , webhookId, webhookToken ] = match;
+            const [, webhookId, webhookToken] = match;
 
             // fetch the webhook
             const webhook = await message.client.fetchWebhook(webhookId, webhookToken);

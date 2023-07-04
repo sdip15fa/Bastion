@@ -11,8 +11,8 @@
 /typings
 
 # Lock file
-package-lock.json
-yarn.lock
+# package-lock.json
+# yarn.lock
 
 ### Logs ###
 screenlog.*
@@ -128,3 +128,6 @@ jspm_packages
 
 # Yarn Integrity file
 .yarn-integrity
+
+.lh/
+.idea/

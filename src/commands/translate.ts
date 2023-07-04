@@ -4,7 +4,7 @@
  */
 import { ApplicationCommandOptionType, ChatInputCommandInteraction } from "discord.js";
 import { Command } from "@bastion/tesseract";
-import translate = require("@iamtraction/google-translate");
+import translate from "@iamtraction/google-translate";
 
 class TranslateCommand extends Command {
     constructor() {
